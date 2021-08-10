@@ -111,11 +111,15 @@ class Particula:
             ## Velocity Recalculation z axis
             self.w = -self.w
             ##todo: Velocity Recalculation y Axis (descomposicion vector plano XY)
-
+            self.v = self.v / numpy.cos(random.randint(-10,11))
 
             alpha_xz = numpy.arctan(self.w/self.u)
-            epsilon = random.randint(0,11)
-            self.u = self.w/numpy.tan(alpha_xz + epsilon)
+            epsilon = random.random(0,11)
+
+            if alpha_xz + epsilon <= 75:
+                self.u = self.w/numpy.tan(alpha_xz + epsilon)
+            else:
+                self.u = self.w/numpy.tan(75)
         pass
 
 
