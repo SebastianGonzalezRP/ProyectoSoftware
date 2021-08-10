@@ -13,26 +13,21 @@ class Particula:
     v = 0  # velocity y axis
     w = 0  # velocity z axis
     ufz = 0 # fluid speed at z
-    up = False  # bool check to compare for max height
     jump_count = -1  # counter of jumps in the simulation
     max_z = 0  # max height achieved
     avg_max_z = 0  # average max height
 
     def __init__(self, x0, y0, z0, u0, v0, w0):
         global Taus
+
         self.x = x0
         self.y = y0
         self.z = z0
         self.u = u0
         self.v = v0
         self.w = w0
+        self.ufz = self.fluid_speed(self.z)
 
-        if 73 * math.sqrt(Taus) < 5:
-            self.ufz = 2.5 * numpy.log(73 * math.sqrt(Taus) * self.z) + 5.5
-        elif 5<= 73 * math.sqrt(Taus) < 70:
-            self.ufz = 2.5 * numpy.log(73 * math.sqrt(Taus) * self.z) + 5.5 - 2.5 * numpy.log(1 + 0.3 * 73 * math.sqrt(Taus))
-        else:
-            self.ufz = 2.5 * numpy.log(30 * self.z)
 
     def pos(self):
         print([self.x, self.y, self.z])
@@ -52,6 +47,7 @@ class Particula:
         self.u = self.u + dt * force[0]
         self.v = self.v + dt * force[1]
         self.w = self.w + dt * force[2]
+        ##todo: calcular z maximos y z avg
 
     ## New Axis Forces
     def tick_force(self, theta, R, Taus, CL):
@@ -69,17 +65,17 @@ class Particula:
 
     ## Drag Force x Axis
     def fdrx(self, R, urm, cdt):
-        fdr = 0.75*(1/(1+R+0.5)) * cdt * self.u * urm
+        fdr = -0.75*(1/(1+R+0.5)) * cdt * self.u * urm
         return fdr
 
     ## Drag Force y Axis
     def fdry(self, R, urm, cdt):
-        fdr = 0.75 * (1 / (1 + R + 0.5)) * cdt * self.v * urm
+        fdr = -0.75 * (1 / (1 + R + 0.5)) * cdt * self.v * urm
         return fdr
 
     ## Drag Force z Axis
     def fdrz(self, R, urm, cdt):
-        fdr = 0.75 * (1 / (1 + R + 0.5)) * cdt * self.w * urm
+        fdr = -0.75 * (1 / (1 + R + 0.5)) * cdt * self.w * urm
         return fdr
 
     ## Submerged Weigth Force x Axis
@@ -99,20 +95,27 @@ class Particula:
 
     ## Lift Force z Axis
     def flfz(self, R, CL):
-        #todo: complete ur2t and ur2b
-        """ur2t =  self.u -
-        ur2b ="""
+        ur2t =  pow(self.u - self.fluid_speed(self.z + 0.5),2) + pow(self.v-self.ufz,2) + pow(self.w-self.ufz,2)
+        ur2b =  pow(self.u - self.fluid_speed(self.z - 0.5),2) + pow(self.v-self.ufz,2) + pow(self.w-self.ufz,2)
         flf = 0.75 * 1/(1 + R + 0.5) * CL * (ur2t + ur2b)
-        pass
+        return flf
 
     def bounce_check(self, dt):
+        old_z = self.z
         self.z = self.z + self.w * dt
         if self.z < 0.501:
-            ## Velocity Recalculation z axis
-            self.w = -self.w
-            ##todo: Velocity Recalculation y Axis (descomposicion vector plano XY)
-            self.v = self.v / numpy.cos(random.randint(-10,11))
+            self.jump_count += 1
 
+            ## New z Position
+            travel = old_z * dt
+            bounce_dist = abs(old_z-0.501)
+            self.z = self.z + travel - bounce_dist
+
+            ## Velocity Recalculation z Axis
+            self.w = -self.w
+            ##Velocity Recalculation y Axis (descomposicion vector plano XY)
+            self.v = self.u * numpy.tan(random.randint(-10,11))
+            ##Velocity Recalculation x Axis
             alpha_xz = numpy.arctan(self.w/self.u)
             epsilon = random.random(0,11)
 
@@ -121,6 +124,15 @@ class Particula:
             else:
                 self.u = self.w/numpy.tan(75)
         pass
+
+    def fluid_speed(self, z):
+        if 73 * math.sqrt(Taus) < 5:
+            ufz = 2.5 * numpy.log(73 * math.sqrt(Taus) * z) + 5.5
+        elif 5 <= 73 * math.sqrt(Taus) < 70:
+            ufz = 2.5 * numpy.log(73 * math.sqrt(Taus) * z) + 5.5 - 2.5 * numpy.log(1 + 0.3 * 73 * math.sqrt(Taus))
+        else:
+            ufz = 2.5 * numpy.log(30 * z)
+        return ufz
 
 
 
