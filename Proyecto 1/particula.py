@@ -99,6 +99,7 @@ class Particula:
 
     ## Lift Force z Axis
     def flfz(self, R, CL):
+        #todo: complete ur2t and ur2b
         """ur2t =  self.u -
         ur2b ="""
         flf = 0.75 * 1/(1 + R + 0.5) * CL * (ur2t + ur2b)
@@ -107,9 +108,11 @@ class Particula:
     def bounce_check(self, dt):
         self.z = self.z + self.w * dt
         if self.z < 0.501:
-            ## Velocity Recalculation
+            ## Velocity Recalculation z axis
             self.w = -self.w
-            ## 
+            ##todo: Velocity Recalculation y Axis (descomposicion vector plano XY)
+
+
             alpha_xz = numpy.arctan(self.w/self.u)
             epsilon = random.randint(0,11)
             self.u = self.w/numpy.tan(alpha_xz + epsilon)
