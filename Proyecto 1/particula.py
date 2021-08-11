@@ -3,22 +3,23 @@ import random
 import numpy
 import math
 
-## theta, R, Taus, CL
 
 class Particula:
     x = 0  # pos x axis
     y = 0  # pos y axis
     z = 0  # pos z axis
+
     u = 0  # velocity x axis
     v = 0  # velocity y axis
     w = 0  # velocity z axis
-    ufz = 0 # fluid speed at z
+
+    ufz = 0  # fluid speed at z
+
     jump_count = -1  # counter of jumps in the simulation
     max_z = 0  # max height achieved
     avg_max_z = 0  # average max height
 
-    def __init__(self, x0, y0, z0, u0, v0, w0):
-        global Taus
+    def __init__(self, x0, y0, z0, u0, v0, w0, taus):
 
         self.x = x0
         self.y = y0
@@ -26,78 +27,104 @@ class Particula:
         self.u = u0
         self.v = v0
         self.w = w0
-        self.ufz = self.fluid_speed(self.z)
-
+        self.ufz = self.fluid_speed(self.z, taus)
 
     def pos(self):
-        print([self.x, self.y, self.z])
+        print("pos: ", [self.x, self.y, self.z])
 
-    ## New Position
-    def tick_move(self, dt):
+    def vel(self):
+        print("vel: ", [self.u, self.v, self.w])
+
+    # New Position
+    def update_pos(self, dt):
 
         self.x = self.x + self.u * dt
         self.y = self.y + self.v * dt
         self.bounce_check(dt)
 
-    ## New Velocity
-    def tick_velocity(self, dt, theta, R, Taus, CL):
+    # New Velocity
+    def update_vel(self, dt, theta, r, taus, cl):
 
-        force = self.tick_force(theta, R, Taus, CL)
+        force = self.get_new_force(theta, r, taus, cl)
 
         self.u = self.u + dt * force[0]
         self.v = self.v + dt * force[1]
-        self.w = self.w + dt * force[2]
-        ##todo: calcular z maximos y z avg
 
-    ## New Axis Forces
-    def tick_force(self, theta, R, Taus, CL):
-        ## Relative Velocity Magnitude
-        urm = math.sqrt(pow(self.u-self.ufz,2) + pow(self.v-self.ufz,2) + pow(self.w-self.ufz,2))
+        new_w = self.w + dt * force[2]
+        # check if it is a max
+        if self.w >= 0 > new_w:
+            self.avg_max_z += self.z
+            if self.z > self.max_z:
+                self.max_z = self.z
+        self.w = new_w
 
-        ## Drag coeficient
-        rept = urm * math.sqrt(Taus) * 73
-        cdt = 24 / (rept * (1 + (0.15 * math.sqrt(rept)) + (0.17 * rept)) - (0.208 / 1 + pow(10, 4) * pow(rept, -0.5)))
+        self.ufz = self.fluid_speed(self.z, taus)
 
-        fx = self.fdrx(R, urm, cdt) + self.fswx(theta, R, Taus) + self.fvmx(R)
-        fy = self.fdry(R, urm, cdt)
-        fz = self.fdrz(R, urm, cdt) + self.fswz(theta, R, Taus) + self.flfz(R, CL)
+    # New Axis Forces
+    def get_new_force(self, theta, r, taus, cl):
+        # Relative Velocity Magnitude
+        magnitud_velocidad_relativa = math.sqrt(
+            pow(self.u - self.ufz, 2) + pow(self.v - self.ufz, 2) + pow(self.w - self.ufz, 2))
+
+        # Drag coefficient
+        rep = magnitud_velocidad_relativa * math.sqrt(taus) * 73
+        coeficiente_arrastre = 24 / (
+                    rep * (1 + (0.15 * math.sqrt(rep)) + (0.17 * rep)) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
+
+        fx = self.drag_force_x(r, magnitud_velocidad_relativa, coeficiente_arrastre) + self.submerged_weight_force_x(
+            theta, r, taus) + self.virtual_mass_force_x(
+            r)
+        fy = self.drag_force_y(r, magnitud_velocidad_relativa, coeficiente_arrastre)
+        fz = self.drag_force_z(r, magnitud_velocidad_relativa, coeficiente_arrastre) + self.submerged_weight_force_z(
+            theta, r, taus) + self.lift_force_z(r, cl,
+                                                taus)
+        print("force z: ", fz)
         return [fx, fy, fz]
 
-    ## Drag Force x Axis
-    def fdrx(self, R, urm, cdt):
-        fdr = -0.75*(1/(1+R+0.5)) * cdt * self.u * urm
+    # Drag Force x Axis
+    def drag_force_x(self, r, urm, cdt):
+        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * (self.u - self.ufz) * urm
         return fdr
 
-    ## Drag Force y Axis
-    def fdry(self, R, urm, cdt):
-        fdr = -0.75 * (1 / (1 + R + 0.5)) * cdt * self.v * urm
+    # Drag Force y Axis
+    def drag_force_y(self, r, urm, cdt):
+        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * (self.v - self.ufz) * urm
         return fdr
 
-    ## Drag Force z Axis
-    def fdrz(self, R, urm, cdt):
-        fdr = -0.75 * (1 / (1 + R + 0.5)) * cdt * self.w * urm
+    # Drag Force z Axis
+    def drag_force_z(self, r, urm, cdt):
+        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * (self.w - self.ufz) * urm
+        print("force drag z: ", fdr)
         return fdr
 
-    ## Submerged Weigth Force x Axis
-    def fswx(self, theta, R, Taus):
-        fsw = 1 / (1 + R + 0.5) * math.sin(theta) * 1/Taus
+    # Submerged Weight Force x Axis
+    @staticmethod
+    def submerged_weight_force_x(theta, r, taus):
+        fsw = 1 / (1 + r + 0.5) * math.sin(theta) * 1 / taus
         return fsw
 
-    ## Submerged Weigth Force z Axis
-    def fswz(self, theta, R, Taus):
-        fsw = 1 / (1 + R + 0.5) * math.cos(theta) * 1 / Taus
+    # Submerged Weight Force z Axis
+    @staticmethod
+    def submerged_weight_force_z(theta, r, taus):
+        fsw = - 1 / (1 + r + 0.5) * math.cos(theta) * 1 / taus
+        print("force submerged z: ", fsw)
         return fsw
 
-    ## Virtual Mass Force x Axis
-    def fvmx(self, R):
-        fvm = 0.5/ (1 + R + 0.5) * (self.w - self.ufz) * 2.5/self.z
+    # Virtual Mass Force x Axis
+    def virtual_mass_force_x(self, r):
+        fvm = 0.5 / (1 + r + 0.5) * (self.w - self.ufz) * 2.5 / self.z
         return fvm
 
-    ## Lift Force z Axis
-    def flfz(self, R, CL):
-        ur2t =  pow(self.u - self.fluid_speed(self.z + 0.5),2) + pow(self.v-self.ufz,2) + pow(self.w-self.ufz,2)
-        ur2b =  pow(self.u - self.fluid_speed(self.z - 0.5),2) + pow(self.v-self.ufz,2) + pow(self.w-self.ufz,2)
-        flf = 0.75 * 1/(1 + R + 0.5) * CL * (ur2t + ur2b)
+    # Lift Force z Axis
+    def lift_force_z(self, r, cl, taus):
+        ur2t = pow(self.u - self.fluid_speed(self.z + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
+            self.w - self.ufz, 2)
+        ur2b = pow(self.u - self.fluid_speed(self.z - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
+            self.w - self.ufz, 2)
+        flf = 0.75 * 1 / (1 + r + 0.5) * cl * (ur2t + ur2b)
+        print("force lift z: ", flf)
+        print("top: ", ur2t)
+        print("bot: ", ur2b)
         return flf
 
     def bounce_check(self, dt):
@@ -106,34 +133,48 @@ class Particula:
         if self.z < 0.501:
             self.jump_count += 1
 
-            ## New z Position
+            # New z Position
             travel = old_z * dt
-            bounce_dist = abs(old_z-0.501)
+            bounce_dist = abs(old_z - 0.501)
             self.z = self.z + travel - bounce_dist
 
-            ## Velocity Recalculation z Axis
+            # Velocity Recalculation z Axis
             self.w = -self.w
-            ##Velocity Recalculation y Axis (descomposicion vector plano XY)
-            self.v = self.u * numpy.tan(random.randint(-10,11))
-            ##Velocity Recalculation x Axis
-            alpha_xz = numpy.arctan(self.w/self.u)
-            epsilon = random.random(0,11)
+            # Velocity Recalculation y Axis (decomposicion vector plano XY)
+            self.v = self.u * numpy.tan(random.randint(-10, 11))
+            # Velocity Recalculation x Axis
+            alpha_xz = numpy.arctan(self.w / self.u)
+            epsilon = random.random(0, 11)
 
             if alpha_xz + epsilon <= 75:
-                self.u = self.w/numpy.tan(alpha_xz + epsilon)
+                self.u = self.w / numpy.tan(alpha_xz + epsilon)
             else:
-                self.u = self.w/numpy.tan(75)
+                self.u = self.w / numpy.tan(75)
         pass
 
-    def fluid_speed(self, z):
-        if 73 * math.sqrt(Taus) < 5:
-            ufz = 2.5 * numpy.log(73 * math.sqrt(Taus) * z) + 5.5
-        elif 5 <= 73 * math.sqrt(Taus) < 70:
-            ufz = 2.5 * numpy.log(73 * math.sqrt(Taus) * z) + 5.5 - 2.5 * numpy.log(1 + 0.3 * 73 * math.sqrt(Taus))
+    @staticmethod
+    def fluid_speed(z, taus):
+        if 73 * math.sqrt(taus) < 5:
+            ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5
+        elif 5 <= 73 * math.sqrt(taus) < 70:
+            ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5 - 2.5 * numpy.log(
+                1 + 0.3 * 73 * math.sqrt(taus))
         else:
             ufz = 2.5 * numpy.log(30 * z)
         return ufz
 
-
-
-
+    def simulate(self, t, dt, theta, r, taus, cl):
+        t_done = 0
+        while t_done <= t:
+            t_done += dt
+            self.pos()
+            self.vel()
+            print()
+            self.update_pos(dt)
+            self.update_vel(dt, theta, r, taus, cl)
+        if self.jump_count > 0:
+            self.avg_max_z = self.avg_max_z / self.jump_count
+        else:
+            self.avg_max_z = self.z
+            self.max_z = self.z
+        return [self.x, self.y, self.z, self.jump_count, self.max_z, self.avg_max_z]
