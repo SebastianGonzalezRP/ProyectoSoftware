@@ -49,8 +49,10 @@ class Particula:
 
         self.u = self.u + dt * force[0]
         self.v = self.v + dt * force[1]
+
         new_w = self.w + dt * force[2]
         if self.w >= 0 > new_w:
+            self.avg_max_z += self.z
             if self.z > self.max_z:
                 self.max_z = self.z
         self.w = new_w
@@ -169,4 +171,9 @@ class Particula:
             print()
             self.update_pos(dt)
             self.update_vel(dt, theta, r, taus, cl)
-            # todo: calcular z avg
+        if self.jump_count > 0:
+            self.avg_max_z = self.avg_max_z / self.jump_count
+        else:
+            self.avg_max_z = self.z
+            self.max_z = self.z
+        return [self.x, self.y, self.z, self.jump_count, self.max_z, self.avg_max_z]
