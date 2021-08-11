@@ -51,6 +51,7 @@ class Particula:
         self.v = self.v + dt * force[1]
 
         new_w = self.w + dt * force[2]
+        # check if it is a max
         if self.w >= 0 > new_w:
             self.avg_max_z += self.z
             if self.z > self.max_z:
