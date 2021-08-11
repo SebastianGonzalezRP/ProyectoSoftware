@@ -28,6 +28,7 @@ class Particula:
         self.v = v0
         self.w = w0
         self.ufz = self.fluid_speed(self.z, taus)
+        print(self.ufz)
 
     def pos(self):
         print("pos: ", [self.x, self.y, self.z])
@@ -94,7 +95,6 @@ class Particula:
     # Drag Force z Axis
     def drag_force_z(self, r, urm, cdt):
         fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * (self.w - self.ufz) * urm
-        print("force drag z: ", fdr)
         return fdr
 
     # Submerged Weight Force x Axis
@@ -107,7 +107,6 @@ class Particula:
     @staticmethod
     def submerged_weight_force_z(theta, r, taus):
         fsw = - 1 / (1 + r + 0.5) * math.cos(theta) * 1 / taus
-        print("force submerged z: ", fsw)
         return fsw
 
     # Virtual Mass Force x Axis
@@ -123,8 +122,6 @@ class Particula:
             self.w - self.ufz, 2)
         flf = 0.75 * 1 / (1 + r + 0.5) * cl * (ur2t + ur2b)
         print("force lift z: ", flf)
-        print("top: ", ur2t)
-        print("bot: ", ur2b)
         return flf
 
     def bounce_check(self, dt):
@@ -134,9 +131,9 @@ class Particula:
             self.jump_count += 1
 
             # New z Position
-            travel = old_z * dt
+            travel = old_z - self.z
             bounce_dist = abs(old_z - 0.501)
-            self.z = self.z + travel - bounce_dist
+            self.z = self.z + (travel - bounce_dist) * 2
 
             # Velocity Recalculation z Axis
             self.w = -self.w
@@ -144,7 +141,7 @@ class Particula:
             self.v = self.u * numpy.tan(random.randint(-10, 11))
             # Velocity Recalculation x Axis
             alpha_xz = numpy.arctan(self.w / self.u)
-            epsilon = random.random(0, 11)
+            epsilon = random.randint(0, 11)
 
             if alpha_xz + epsilon <= 75:
                 self.u = self.w / numpy.tan(alpha_xz + epsilon)
