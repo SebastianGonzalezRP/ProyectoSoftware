@@ -50,6 +50,10 @@ class Particula:
         self.u = self.u + dt * force[0]
         self.v = self.v + dt * force[1]
         new_w = self.w + dt * force[2]
+        if self.w >= 0 > new_w:
+            if self.z > self.max_z:
+                self.max_z = self.z
+        self.w = new_w
 
         self.ufz = self.fluid_speed(self.z, taus)
 
@@ -165,4 +169,4 @@ class Particula:
             print()
             self.update_pos(dt)
             self.update_vel(dt, theta, r, taus, cl)
-            # todo: calcular z maximos y z avg
+            # todo: calcular z avg
