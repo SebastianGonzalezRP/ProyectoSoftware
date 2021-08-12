@@ -173,5 +173,4 @@ class Particula:
             self.avg_max_z = self.z
             self.max_z = self.z
         return [self.x, self.y, self.z, self.jump_count, self.max_z, self.avg_max_z]
-    def graph(self):
 
