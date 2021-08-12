@@ -2,6 +2,7 @@ import random
 
 import numpy
 import math
+import matplotlib.pyplot
 
 
 class Particula:
@@ -28,7 +29,6 @@ class Particula:
         self.v = v0
         self.w = w0
         self.ufz = self.fluid_speed(self.z, taus)
-        print(self.ufz)
 
     def pos(self):
         print("pos: ", [self.x, self.y, self.z])
@@ -64,21 +64,17 @@ class Particula:
     # New Axis Forces
     def get_new_force(self, theta, r, taus, cl):
         # Relative Velocity Magnitude
-        magnitud_velocidad_relativa = math.sqrt(
+        urm = math.sqrt(
             pow(self.u - self.ufz, 2) + pow(self.v - self.ufz, 2) + pow(self.w - self.ufz, 2))
 
         # Drag coefficient
-        rep = magnitud_velocidad_relativa * math.sqrt(taus) * 73
-        coeficiente_arrastre = 24 / (
-                    rep * (1 + (0.15 * math.sqrt(rep)) + (0.17 * rep)) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
+        rep = urm * math.sqrt(taus) * 73
+        cd = 24 / (
+                    rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
 
-        fx = self.drag_force_x(r, magnitud_velocidad_relativa, coeficiente_arrastre) + self.submerged_weight_force_x(
-            theta, r, taus) + self.virtual_mass_force_x(
-            r)
-        fy = self.drag_force_y(r, magnitud_velocidad_relativa, coeficiente_arrastre)
-        fz = self.drag_force_z(r, magnitud_velocidad_relativa, coeficiente_arrastre) + self.submerged_weight_force_z(
-            theta, r, taus) + self.lift_force_z(r, cl,
-                                                taus)
+        fx = self.drag_force_x(r, urm, cd) + self.submerged_weight_force_x(theta, r, taus) + self.virtual_mass_force_x(r)
+        fy = self.drag_force_y(r, urm, cd)
+        fz = self.drag_force_z(r, urm, cd) + self.submerged_weight_force_z(theta, r, taus) + self.lift_force_z(r, cl, taus)
         print("force z: ", fz)
         return [fx, fy, fz]
 
@@ -120,7 +116,9 @@ class Particula:
             self.w - self.ufz, 2)
         ur2b = pow(self.u - self.fluid_speed(self.z - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
-        flf = 0.75 * 1 / (1 + r + 0.5) * cl * (ur2t + ur2b)
+        flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t + ur2b)
+        print("top: ", ur2t)
+        print("bot: ", ur2b)
         print("force lift z: ", flf)
         return flf
 
@@ -175,3 +173,5 @@ class Particula:
             self.avg_max_z = self.z
             self.max_z = self.z
         return [self.x, self.y, self.z, self.jump_count, self.max_z, self.avg_max_z]
+    def graph(self):
+
