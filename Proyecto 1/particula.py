@@ -24,6 +24,7 @@ class Particula:
         self.x = x0
         self.y = y0
         self.z = z0
+        self.z1 = z0
         self.u = u0
         self.v = v0
         self.w = w0
@@ -40,6 +41,7 @@ class Particula:
 
         self.x = self.x + self.u * dt
         self.y = self.y + self.v * dt
+        self.z1 = self.z
         self.bounce_check(dt)
 
     # New Velocity
@@ -63,16 +65,18 @@ class Particula:
     # New Axis Forces
     def get_new_force(self, theta, r, taus, cl):
         # Relative Velocity Magnitude
-        urm = math.sqrt(
-            pow(self.u - self.ufz, 2) + pow(self.v - self.ufz, 2) + pow(self.w - self.ufz, 2))
+        urm = math.sqrt(pow(self.u - self.ufz, 2) + pow(self.v - self.ufz, 2) + pow(self.w - self.ufz, 2))
 
-        # Drag coefficient
         rep = urm * math.sqrt(taus) * 73
+        # Drag coefficient
         cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
 
         fx = self.drag_force_x(r, urm, cd) + self.submerged_weight_force_x(theta, r, taus) + self.virtual_mass_force_x(r)
         fy = self.drag_force_y(r, urm, cd)
-        fz = self.drag_force_z(r, urm, cd) + self.submerged_weight_force_z(theta, r, taus) + self.lift_force_z(r, cl, taus)
+        fdragz = self.drag_force_z(r, urm, cd)
+        fsubmergedz= self.submerged_weight_force_z(theta, r, taus)
+        fliftz = self.lift_force_z(r, cl, taus)
+        fz =  fsubmergedz + fdragz + fliftz
         return [fx, fy, fz]
 
     # Drag Force x Axis
@@ -104,7 +108,7 @@ class Particula:
 
     # Virtual Mass Force x Axis
     def virtual_mass_force_x(self, r):
-        fvm = 0.5 / (1 + r + 0.5) * (self.w - self.ufz) * 2.5 / self.z
+        fvm = 0.5 / (1 + r + 0.5) * (self.w - self.ufz) * 2.5 / self.z1
         return fvm
 
     # Lift Force z Axis
@@ -113,7 +117,7 @@ class Particula:
             self.w - self.ufz, 2)
         ur2b = pow(self.u - self.fluid_speed(self.z - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
-        flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t + ur2b)
+        flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t - ur2b)
         return flf
 
     def bounce_check(self, dt):
