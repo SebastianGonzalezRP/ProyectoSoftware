@@ -2,7 +2,6 @@ import random
 
 import numpy
 import math
-import matplotlib.pyplot
 
 
 class Particula:
@@ -69,13 +68,11 @@ class Particula:
 
         # Drag coefficient
         rep = urm * math.sqrt(taus) * 73
-        cd = 24 / (
-                    rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
+        cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
 
         fx = self.drag_force_x(r, urm, cd) + self.submerged_weight_force_x(theta, r, taus) + self.virtual_mass_force_x(r)
         fy = self.drag_force_y(r, urm, cd)
         fz = self.drag_force_z(r, urm, cd) + self.submerged_weight_force_z(theta, r, taus) + self.lift_force_z(r, cl, taus)
-        print("force z: ", fz)
         return [fx, fy, fz]
 
     # Drag Force x Axis
@@ -96,13 +93,13 @@ class Particula:
     # Submerged Weight Force x Axis
     @staticmethod
     def submerged_weight_force_x(theta, r, taus):
-        fsw = 1 / (1 + r + 0.5) * math.sin(theta) * 1 / taus
+        fsw = 1 / (1 + r + 0.5) * numpy.sin(numpy.deg2rad(theta)) * 1 / taus
         return fsw
 
     # Submerged Weight Force z Axis
     @staticmethod
     def submerged_weight_force_z(theta, r, taus):
-        fsw = - 1 / (1 + r + 0.5) * math.cos(theta) * 1 / taus
+        fsw = - 1 / (1 + r + 0.5) * numpy.cos(numpy.deg2rad(theta)) * 1 / taus
         return fsw
 
     # Virtual Mass Force x Axis
@@ -117,9 +114,6 @@ class Particula:
         ur2b = pow(self.u - self.fluid_speed(self.z - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
         flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t + ur2b)
-        print("top: ", ur2t)
-        print("bot: ", ur2b)
-        print("force lift z: ", flf)
         return flf
 
     def bounce_check(self, dt):
@@ -136,15 +130,15 @@ class Particula:
             # Velocity Recalculation z Axis
             self.w = -self.w
             # Velocity Recalculation y Axis (decomposicion vector plano XY)
-            self.v = self.u * numpy.tan(random.randint(-10, 11))
+            self.v = self.u * numpy.tan(numpy.deg2rad(random.randint(-10, 11)))
             # Velocity Recalculation x Axis
-            alpha_xz = numpy.arctan(self.w / self.u)
+            alpha_xz = numpy.rad2deg(numpy.arctan(self.w / self.u))
             epsilon = random.randint(0, 11)
 
             if alpha_xz + epsilon <= 75:
-                self.u = self.w / numpy.tan(alpha_xz + epsilon)
+                self.u = self.w / numpy.tan(numpy.deg2rad(alpha_xz + epsilon))
             else:
-                self.u = self.w / numpy.tan(75)
+                self.u = self.w / numpy.tan(numpy.deg2rad(75))
         pass
 
     @staticmethod
@@ -155,22 +149,19 @@ class Particula:
             ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5 - 2.5 * numpy.log(
                 1 + 0.3 * 73 * math.sqrt(taus))
         else:
-            ufz = 2.5 * numpy.log(30 * z)
+            ufz = 2.5 * numpy.log10(30 * z)
         return ufz
 
     def simulate(self, t, dt, theta, r, taus, cl):
         t_done = 0
         while t_done <= t:
             t_done += dt
-            self.pos()
-            self.vel()
-            print()
             self.update_pos(dt)
             self.update_vel(dt, theta, r, taus, cl)
         if self.jump_count > 0:
             self.avg_max_z = self.avg_max_z / self.jump_count
         else:
+            self.jump_count = 0
             self.avg_max_z = self.z
             self.max_z = self.z
         return [self.x, self.y, self.z, self.jump_count, self.max_z, self.avg_max_z]
-
