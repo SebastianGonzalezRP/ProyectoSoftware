@@ -13,6 +13,10 @@ class Particula:
     v = 0  # velocity y axis
     w = 0  # velocity z axis
 
+    historic_x = []
+    historic_y = []
+    historic_z = []
+
     ufz = 0  # fluid speed at z
 
     jump_count = -1  # counter of jumps in the simulation
@@ -38,6 +42,14 @@ class Particula:
     # New Position
     def update_pos(self, dt):
 
+        global taus
+
+        self.historic_x.append(self.x)
+        self.historic_y.append(self.y)
+        self.historic_z.append(self.z)
+
+        self.ufz = self.fluid_speed(self.z, taus)
+
         self.x = self.x + self.u * dt
         self.y = self.y + self.v * dt
         self.bounce_check(dt)
@@ -57,8 +69,6 @@ class Particula:
             if self.z > self.max_z:
                 self.max_z = self.z
         self.w = new_w
-
-        self.ufz = self.fluid_speed(self.z, taus)
 
     # New Axis Forces
     def get_new_force(self, theta, r, taus, cl):
@@ -104,16 +114,16 @@ class Particula:
 
     # Virtual Mass Force x Axis
     def virtual_mass_force_x(self, r):
-        fvm = 0.5 / (1 + r + 0.5) * (self.w - self.ufz) * 2.5 / self.z
+        fvm = 0.5 / (1 + r + 0.5) * (self.w - self.ufz) * 2.5 / self.historic_z[-1]
         return fvm
 
     # Lift Force z Axis
     def lift_force_z(self, r, cl, taus):
-        ur2t = pow(self.u - self.fluid_speed(self.z + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
+        ur2t = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
-        ur2b = pow(self.u - self.fluid_speed(self.z - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
+        ur2b = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
-        flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t + ur2b)
+        flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t - ur2b)
         return flf
 
     def bounce_check(self, dt):
