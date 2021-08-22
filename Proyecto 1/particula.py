@@ -40,9 +40,7 @@ class Particula:
         print("vel: ", [self.u, self.v, self.w])
 
     # New Position
-    def update_pos(self, dt):
-
-        global taus
+    def update_pos(self, dt, taus):
 
         self.historic_x.append(self.x)
         self.historic_y.append(self.y)
@@ -166,7 +164,7 @@ class Particula:
         t_done = 0
         while t_done <= t:
             t_done += dt
-            self.update_pos(dt)
+            self.update_pos(dt, taus)
             self.update_vel(dt, theta, r, taus, cl)
         if self.jump_count > 0:
             self.avg_max_z = self.avg_max_z / self.jump_count
