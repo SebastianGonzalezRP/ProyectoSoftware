@@ -157,7 +157,7 @@ class Particula:
             ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5 - 2.5 * numpy.log(
                 1 + 0.3 * 73 * math.sqrt(taus))
         else:
-            ufz = 2.5 * numpy.log10(30 * z)
+            ufz = 2.5 * numpy.log(30 * z)
         return ufz
 
     def simulate(self, t, dt, theta, r, taus, cl):
