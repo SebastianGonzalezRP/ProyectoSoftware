@@ -72,14 +72,17 @@ class Particula:
 
         # Drag coefficient
         rep = urm * math.sqrt(taus) * 73
-        cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * math.sqrt(rep))))
+        cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + .017 * rep) - (0.208 / (1 + pow(10, 4) * math.sqrt(rep))))
 
         fxdrag = self.drag_force_x(r, urm, cd)
         fxsubmerged = self.submerged_weight_force_x(theta, r, taus)
         fxvirtualmass = self.virtual_mass_force_x(r)
         fx = fxdrag + fxsubmerged + fxvirtualmass
         fy = self.drag_force_y(r, urm, cd)
-        fz = self.drag_force_z(r, urm, cd) + self.submerged_weight_force_z(theta, r, taus) + self.lift_force_z(r, cl, taus)
+        fzdrag = self.drag_force_z(r, urm, cd)
+        fzsubmerged = self.submerged_weight_force_z(theta, r, taus)
+        fzlift = self.lift_force_z(r, cl, taus)
+        fz = fzdrag + fzsubmerged + fzlift
         return [fx, fy, fz]
 
     # Drag Force x Axis
@@ -89,12 +92,12 @@ class Particula:
 
     # Drag Force y Axis
     def drag_force_y(self, r, urm, cdt):
-        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * (self.v - self.ufz) * urm
+        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * self.v * urm
         return fdr
 
     # Drag Force z Axis
     def drag_force_z(self, r, urm, cdt):
-        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * (self.w - self.ufz) * urm
+        fdr = -0.75 * (1 / (1 + r + 0.5)) * cdt * self.w * urm
         return fdr
 
     # Submerged Weight Force x Axis
@@ -111,15 +114,15 @@ class Particula:
 
     # Virtual Mass Force x Axis
     def virtual_mass_force_x(self, r):
-        fvm = 0.5 / (1 + r + 0.5) * (self.w - self.ufz) * 2.5 / self.historic_z[-1]
+        fvm = 0.5 / (1 + r + 0.5) * self.w * 2.5 / self.historic_z[-1]
         return fvm
 
     # Lift Force z Axis
     def lift_force_z(self, r, cl, taus):
-        ur2t = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
-            self.w - self.ufz, 2)
-        ur2b = pow(self.u - self.fluid_speed(self.historic_z[-1] - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
-            self.w - self.ufz, 2)
+        ur2t = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v, 2) + pow(
+            self.w, 2)
+        ur2b = pow(self.u - self.fluid_speed(self.historic_z[-1] - 0.5, taus), 2) + pow(self.v, 2) + pow(
+            self.w, 2)
         flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t - ur2b)
         return flf
 
