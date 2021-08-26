@@ -12,7 +12,7 @@ def work_thread(t, dt, Theta, R, Taus, CL, particula):
 
 
 global output
-number_threads = cpu_count() + 2  # TODO: Poner aca la cantidad de threads
+number_threads = cpu_count() * 2  # TODO: Poner aca la cantidad de threads
 
 resultados = {}
 

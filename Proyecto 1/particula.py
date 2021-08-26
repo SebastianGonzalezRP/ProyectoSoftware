@@ -13,7 +13,7 @@ class Particula:
     v = 0  # velocity y axis
     w = 0  # velocity z axis
 
-    historic_z = []
+    last_z = 0
 
     ufz = 0  # fluid speed at z
 
@@ -41,7 +41,7 @@ class Particula:
     # New Position
     def update_pos(self, dt, taus):
 
-        self.historic_z.append(self.z)
+        self.last_z = self.z
 
         self.ufz = self.fluid_speed(self.z, taus)  # z(t-1)
 
@@ -114,14 +114,14 @@ class Particula:
 
     # Virtual Mass Force x Axis
     def virtual_mass_force_x(self, r):
-        fvm = 0.5 / (1 + r + 0.5) * self.w * 2.5 / self.historic_z[-1]
+        fvm = 0.5 / (1 + r + 0.5) * self.w * 2.5 / self.last_z
         return fvm
 
     # Lift Force z Axis
     def lift_force_z(self, r, cl, taus):
-        ur2t = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v, 2) + pow(
+        ur2t = pow(self.u - self.fluid_speed(self.last_z + 0.5, taus), 2) + pow(self.v, 2) + pow(
             self.w, 2)
-        ur2b = pow(self.u - self.fluid_speed(self.historic_z[-1] - 0.5, taus), 2) + pow(self.v, 2) + pow(
+        ur2b = pow(self.u - self.fluid_speed(self.last_z - 0.5, taus), 2) + pow(self.v, 2) + pow(
             self.w, 2)
         flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t - ur2b)
         return flf
