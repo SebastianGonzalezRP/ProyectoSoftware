@@ -1,28 +1,18 @@
 from particula import Particula
-import threading
-import concurrent.futures
 import logging
+from multiprocessing import Pool, current_process, cpu_count
+from functools import partial
 
 
-def work_thread(name):
-    while len(particulas) != 0:  # work until there are no more particles
-        logging.info("Thread %s: Simulating new particle", name)
-        with lock:  # lock for proper synchronization
-            logging.debug("Thread %s has lock", name)
-            p = particulas[0]
-            del particulas[0]
-            logging.debug("Thread %s about to release lock", name)
-
-        res = p.simulate(t, dt, Theta, R, Taus, CL)
-
-        logging.info("Thread %s: Results ready. Writing on output file", name)
-        resultados[p.id] = res
+def work_thread(t, dt, Theta, R, Taus, CL, particula):
+    logging.info("Thread %s: Simulating new particle", current_process().name)
+    res = particula.simulate(t, dt, Theta, R, Taus, CL)
+    logging.info("Thread %s: Results ready. Writing on output file", current_process().name)
+    return res
 
 
 global output
-particulas = []
-number_threads = 1  # TODO: Poner aca la cantidad de threads
-lock = threading.Lock()
+number_threads = cpu_count() + 2  # TODO: Poner aca la cantidad de threads
 
 resultados = {}
 
@@ -33,7 +23,7 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
     logging.info("Main: starting program, reading and creating files")
 
-    entry_name = "input01.in"  # TODO: Poner aca el nombre del archivo
+    entry_name = "input02.in"  # TODO: Poner aca el nombre del archivo
 
     # Reading file and parsing to list of strings
     with open(entry_name, "r") as f:
@@ -45,25 +35,28 @@ if __name__ == "__main__":
     del lines[1]
     del lines[0]
 
+    particulas = []
     # Parsing lines to particles
     for index in range(len(lines)):
         x0, y0, z0, u0, v0, w0 = map(float, lines[index].split(" "))
         p = Particula(x0, y0, z0, u0, v0, w0, Taus, index)
         particulas.append(p)
 
-    # Creating threads for simulation
+    # Creating processes for simulation
+
     logging.info("Main: Creating threads")
     output = open("out.txt", "w")
-    with concurrent.futures.ThreadPoolExecutor(max_workers=number_threads) as executor:
-        for index in range(number_threads):
-            executor.submit(work_thread, index)
+
+    func = partial(work_thread, t, dt, Theta, R, Taus, CL)
+    with Pool(processes=number_threads) as pool:
+        pool_outputs = pool.map(func, particulas)
 
     logging.info("Main: end of simulations. Writing on doc")
 
-    for k in sorted(resultados):
-        for res in resultados[k]:
+    for k in pool_outputs:
+        for res in k:
             output.write(str(res))
             output.write(" ")
         output.write('\n')
 
-output.close()
+    output.close()
