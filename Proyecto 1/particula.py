@@ -13,8 +13,6 @@ class Particula:
     v = 0  # velocity y axis
     w = 0  # velocity z axis
 
-    historic_x = []
-    historic_y = []
     historic_z = []
 
     ufz = 0  # fluid speed at z
@@ -23,8 +21,9 @@ class Particula:
     max_z = 0  # max height achieved
     avg_max_z = 0  # average max height
 
-    def __init__(self, x0, y0, z0, u0, v0, w0, taus):
+    def __init__(self, x0, y0, z0, u0, v0, w0, taus, id):
 
+        self.id = id
         self.x = x0
         self.y = y0
         self.z = z0
@@ -42,11 +41,9 @@ class Particula:
     # New Position
     def update_pos(self, dt, taus):
 
-        self.historic_x.append(self.x)
-        self.historic_y.append(self.y)
         self.historic_z.append(self.z)
 
-        self.ufz = self.fluid_speed(self.z, taus)
+        self.ufz = self.fluid_speed(self.z, taus)  # z(t-1)
 
         self.x = self.x + self.u * dt
         self.y = self.y + self.v * dt
@@ -71,14 +68,16 @@ class Particula:
     # New Axis Forces
     def get_new_force(self, theta, r, taus, cl):
         # Relative Velocity Magnitude
-        urm = math.sqrt(
-            pow(self.u - self.ufz, 2) + pow(self.v - self.ufz, 2) + pow(self.w - self.ufz, 2))
+        urm = math.sqrt(pow(self.u - self.ufz, 2) + pow(self.v, 2) + pow(self.w, 2))
 
         # Drag coefficient
         rep = urm * math.sqrt(taus) * 73
-        cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * pow(rep, -0.5))))
+        cd = 24 / (rep * (1 + 0.15 * math.sqrt(rep) + 0.17 * rep) - (0.208 / (1 + pow(10, 4) * math.sqrt(rep))))
 
-        fx = self.drag_force_x(r, urm, cd) + self.submerged_weight_force_x(theta, r, taus) + self.virtual_mass_force_x(r)
+        fxdrag = self.drag_force_x(r, urm, cd)
+        fxsubmerged = self.submerged_weight_force_x(theta, r, taus)
+        fxvirtualmass = self.virtual_mass_force_x(r)
+        fx = fxdrag + fxsubmerged + fxvirtualmass
         fy = self.drag_force_y(r, urm, cd)
         fz = self.drag_force_z(r, urm, cd) + self.submerged_weight_force_z(theta, r, taus) + self.lift_force_z(r, cl, taus)
         return [fx, fy, fz]
@@ -119,7 +118,7 @@ class Particula:
     def lift_force_z(self, r, cl, taus):
         ur2t = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
-        ur2b = pow(self.u - self.fluid_speed(self.historic_z[-1] + 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
+        ur2b = pow(self.u - self.fluid_speed(self.historic_z[-1] - 0.5, taus), 2) + pow(self.v - self.ufz, 2) + pow(
             self.w - self.ufz, 2)
         flf = 0.75 * (1 / (1 + r + 0.5)) * cl * (ur2t - ur2b)
         return flf
@@ -137,8 +136,6 @@ class Particula:
 
             # Velocity Recalculation z Axis
             self.w = -self.w
-            # Velocity Recalculation y Axis (decomposicion vector plano XY)
-            self.v = self.u * numpy.tan(numpy.deg2rad(random.randint(-10, 11)))
             # Velocity Recalculation x Axis
             alpha_xz = numpy.rad2deg(numpy.arctan(self.w / self.u))
             epsilon = random.randint(0, 11)
@@ -147,15 +144,18 @@ class Particula:
                 self.u = self.w / numpy.tan(numpy.deg2rad(alpha_xz + epsilon))
             else:
                 self.u = self.w / numpy.tan(numpy.deg2rad(75))
+
+            # Velocity Recalculation y Axis (decomposicion vector plano XY)
+            self.v = self.u * numpy.tan(numpy.deg2rad(random.randint(-10, 11)))
         pass
 
     @staticmethod
     def fluid_speed(z, taus):
-        if 73 * math.sqrt(taus) < 5:
+        ufzchecker = 73 * math.sqrt(taus)
+        if ufzchecker < 5:
             ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5
-        elif 5 <= 73 * math.sqrt(taus) < 70:
-            ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5 - 2.5 * numpy.log(
-                1 + 0.3 * 73 * math.sqrt(taus))
+        elif 5 <= ufzchecker < 70:
+            ufz = 2.5 * numpy.log(73 * math.sqrt(taus) * z) + 5.5 - 2.5 * numpy.log(1 + 0.3 * 73 * math.sqrt(taus))
         else:
             ufz = 2.5 * numpy.log(30 * z)
         return ufz

@@ -16,16 +16,15 @@ def work_thread(name):
         res = p.simulate(t, dt, Theta, R, Taus, CL)
 
         logging.info("Thread %s: Results ready. Writing on output file", name)
-        for x in res:
-            output.write(str(x))
-            output.write(" ")
-        output.write('\n')
+        resultados[p.id] = res
 
 
 global output
 particulas = []
-number_threads = 5  # TODO: Poner aca la cantidad de threads
+number_threads = 1  # TODO: Poner aca la cantidad de threads
 lock = threading.Lock()
+
+resultados = {}
 
 if __name__ == "__main__":
     #
@@ -34,7 +33,7 @@ if __name__ == "__main__":
                         datefmt="%H:%M:%S")
     logging.info("Main: starting program, reading and creating files")
 
-    entry_name = "input03.in"  # TODO: Poner aca el nombre del archivo
+    entry_name = "input01.in"  # TODO: Poner aca el nombre del archivo
 
     # Reading file and parsing to list of strings
     with open(entry_name, "r") as f:
@@ -49,7 +48,7 @@ if __name__ == "__main__":
     # Parsing lines to particles
     for index in range(len(lines)):
         x0, y0, z0, u0, v0, w0 = map(float, lines[index].split(" "))
-        p = Particula(x0, y0, z0, u0, v0, w0, Taus)
+        p = Particula(x0, y0, z0, u0, v0, w0, Taus, index)
         particulas.append(p)
 
     # Creating threads for simulation
@@ -59,6 +58,12 @@ if __name__ == "__main__":
         for index in range(number_threads):
             executor.submit(work_thread, index)
 
-    logging.info("Main: end of simulations")
+    logging.info("Main: end of simulations. Writing on doc")
+
+    for k in sorted(resultados):
+        for res in resultados[k]:
+            output.write(str(res))
+            output.write(" ")
+        output.write('\n')
 
 output.close()
